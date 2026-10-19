@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Music · No Words, No Ads</title>
+<meta name="description" content="Ad-free, no-words study music player for the classroom.">
+<style>
+  :root{
+    --bg1:#1d2b5a; --bg2:#3b2a6b; --card:rgba(255,255,255,.10); --line:rgba(255,255,255,.18);
+    --txt:#fffaf0; --sub:#cfd6ff; --calm:#7fd4c7; --up:#ffb86b; --accent:var(--calm);
+  }
+  body.up{--accent:var(--up)}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:"Nunito","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--txt);
+    background:radial-gradient(circle at 15% 20%,rgba(255,255,255,.10) 0 2px,transparent 3px) 0 0/90px 90px,
+               radial-gradient(circle at 70% 60%,rgba(255,255,255,.08) 0 1.5px,transparent 2.5px) 0 0/130px 130px,
+               linear-gradient(160deg,var(--bg1),var(--bg2));
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .app{width:100%;height:100%;max-width:720px;display:flex;flex-direction:column;justify-content:center;
+       gap:clamp(6px,2.2vmin,18px);padding:clamp(8px,3vmin,24px);container-type:size}
+  .tabs{display:flex;gap:8px;justify-content:center}
+  .tab{flex:1;max-width:260px;border:2px solid var(--line);background:var(--card);color:var(--txt);
+       font:inherit;font-weight:800;font-size:clamp(12px,3.6vmin,20px);padding:clamp(4px,1.6vmin,10px) 10px;border-radius:999px;cursor:pointer}
+  .tab[aria-pressed="true"].calm{background:var(--calm);border-color:var(--calm);color:#12304a}
+  .tab[aria-pressed="true"].upb{background:var(--up);border-color:var(--up);color:#4a2400}
+  .now{text-align:center;min-height:0}
+  .label{font-size:clamp(10px,2.6vmin,14px);letter-spacing:.12em;text-transform:uppercase;color:var(--sub);font-weight:700}
+  .title{font-size:clamp(16px,6.5vmin,40px);font-weight:900;line-height:1.1;margin:.15em 0;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .credit{font-size:clamp(9px,2.3vmin,13px);color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .credit a{color:var(--sub)}
+  .bar{height:clamp(4px,1.2vmin,8px);background:var(--line);border-radius:99px;overflow:hidden;cursor:pointer}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s linear}
+  .times{display:flex;justify-content:space-between;font-size:clamp(9px,2.2vmin,12px);color:var(--sub);margin-top:3px}
+  .controls{display:flex;align-items:center;justify-content:center;gap:clamp(8px,3vmin,22px)}
+  .btn{border:0;background:var(--card);color:var(--txt);border-radius:50%;cursor:pointer;display:grid;place-items:center;
+       width:clamp(34px,11vmin,64px);height:clamp(34px,11vmin,64px);border:2px solid var(--line)}
+  .btn svg{width:46%;height:46%;fill:currentColor}
+  .btn.on{background:var(--accent);color:#1d2b5a;border-color:var(--accent)}
+  .play{width:clamp(54px,20vmin,120px);height:clamp(54px,20vmin,120px);background:var(--accent);color:#1d2b5a;border:0;
+        box-shadow:0 6px 24px rgba(0,0,0,.30)}
+  .play svg{width:42%;height:42%}
+  .btn:focus-visible,.tab:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  .vol{display:flex;align-items:center;gap:8px;justify-content:center;font-size:clamp(10px,2.6vmin,14px);color:var(--sub)}
+  .vol input{width:min(260px,50%);accent-color:var(--accent)}
+  .foot{display:flex;justify-content:space-between;gap:8px;font-size:clamp(9px,2.1vmin,12px);color:var(--sub)}
+  .foot a,.foot button{color:var(--sub);background:none;border:0;font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+  dialog{border:0;border-radius:16px;max-width:min(560px,94vw);max-height:86vh;padding:0;background:#22305f;color:var(--txt)}
+  dialog::backdrop{background:rgba(0,0,0,.5)}
+  .dhead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:800}
+  .dlist{overflow:auto;max-height:72vh;padding:6px 0;margin:0;list-style:none}
+  .dlist li{padding:7px 14px;cursor:pointer;font-size:14px;display:flex;gap:8px}
+  .dlist li:hover{background:rgba(255,255,255,.08)}
+  .dlist li.cur{color:var(--accent);font-weight:800}
+  .dlist small{color:var(--sub);margin-left:auto;white-space:nowrap}
+  .x{background:none;border:0;color:var(--txt);font-size:20px;cursor:pointer}
+  /* tiny widget sizes */
+  @container (max-height:260px){ .vol,.times,.credit{display:none} }
+  @container (max-height:180px){ .label,.bar,.foot{display:none} .tabs .tab{padding:2px 8px} }
+  @container (max-width:300px){ .credit{display:none} }
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="tabs" role="group" aria-label="Playlist">
+    <button class="tab calm" id="tCalm" aria-pressed="true">🌙 Calm Focus</button>
+    <button class="tab upb" id="tUp" aria-pressed="false">☀️ Upbeat Study</button>
+  </div>
+  <div class="now">
+    <div class="label" id="lab">Press play · no words · no ads</div>
+    <div class="title" id="ttl">Study Music</div>
+    <div class="credit" id="cred">&nbsp;</div>
+  </div>
+  <div>
+    <div class="bar" id="bar" title="Click to jump"><i id="prog"></i></div>
+    <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  </div>
+  <div class="controls">
+    <button class="btn" id="bShuf" title="Shuffle" aria-label="Shuffle" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5zm.3 9.4-1.4 1.4 3.1 3.1-2 2H20v-5.5l-2 2-3.2-3z"/></svg></button>
+    <button class="btn" id="bPrev" title="Previous" aria-label="Previous">
+      <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+    <button class="btn play" id="bPlay" title="Play / Pause" aria-label="Play">
+      <svg viewBox="0 0 24 24" id="icoPlay"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="btn" id="bNext" title="Next" aria-label="Next">
+      <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+    <button class="btn" id="bList" title="Song list" aria-label="Song list">
+      <svg viewBox="0 0 24 24"><path d="M3 6h13v2H3zm0 5h13v2H3zm0 5h9v2H3zm15-5v6.2a2.5 2.5 0 1 0 2 2.4V9h3V7h-5z"/></svg></button>
+  </div>
+  <div class="vol"><span aria-hidden="true">🔈</span><input id="vol" type="range" min="0" max="100" value="35" aria-label="Volume"><span id="volv">35%</span></div>
+  <div class="foot"><span id="count"></span><a href="credits.html" target="_blank" rel="noopener">Music credits &amp; licenses</a></div>
+</main>
+<dialog id="dlg"><div class="dhead"><span id="dtitle">Songs</span><button class="x" id="dclose" aria-label="Close">✕</button></div><ul class="dlist" id="dlist"></ul></dialog>
+<audio id="au" preload="none"></audio>
+<script src="tracks.js"></script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), au=$('au');
+  const store={get(k,d){try{const v=localStorage.getItem('sm_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+               set(k,v){try{localStorage.setItem('sm_'+k,JSON.stringify(v))}catch(e){}}};
+  const LISTS={calm:TRACKS.filter(t=>t.list==='calm'),up:TRACKS.filter(t=>t.list==='up')};
+  let list=store.get('list','calm'); if(!LISTS[list]) list='calm';
+  let shuffle=store.get('shuffle',true), order=[], pos=0, loaded=false;
+  const PLAY='<path d="M8 5v14l11-7z"/>', PAUSE='<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+  const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+  function mkOrder(keepIdx){
+    const n=LISTS[list].length; order=[...Array(n).keys()];
+    if(shuffle){for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}}
+    if(keepIdx!=null){const k=order.indexOf(keepIdx);if(k>0){order.splice(k,1);order.unshift(keepIdx)}pos=0}else pos=0;
+  }
+  function cur(){return LISTS[list][order[pos]]}
+  function show(){
+    const t=cur(); $('ttl').textContent=t.title;
+    $('cred').innerHTML='by '+t.artist+' · <a href="'+t.licenseUrl+'" target="_blank" rel="noopener">'+t.license+'</a>';
+    $('count').textContent=(list==='calm'?'Calm Focus':'Upbeat Study')+' · '+(pos+1)+' of '+order.length;
+    document.title=t.title+' · Study Music';
+  }
+  function load(){const t=cur();au.src=t.src;loaded=true;show();$('prog').style.width='0';$('cur').textContent='0:00';$('dur').textContent=t.len||'0:00'}
+  function play(){if(!loaded)load();const p=au.play();if(p&&p.catch)p.catch(()=>{$('lab').textContent='Tap ▶ to start'})}
+  function go(d){pos=(pos+d+order.length)%order.length;load();play()}
+  function setList(l){
+    const wasPlaying=!au.paused; list=l;store.set('list',l);document.body.classList.toggle('up',l==='up');
+    $('tCalm').setAttribute('aria-pressed',l==='calm');$('tUp').setAttribute('aria-pressed',l==='up');
+    mkOrder();load(); if(wasPlaying)play();
+  }
+  au.addEventListener('play',()=>{$('icoPlay').innerHTML=PAUSE;$('bPlay').setAttribute('aria-label','Pause');$('lab').textContent='Now playing · no words'});
+  au.addEventListener('pause',()=>{$('icoPlay').innerHTML=PLAY;$('bPlay').setAttribute('aria-label','Play');$('lab').textContent='Paused'});
+  au.addEventListener('ended',()=>go(1));
+  au.addEventListener('error',()=>{if(loaded&&au.src)setTimeout(()=>go(1),800)});
+  au.addEventListener('loadedmetadata',()=>{$('dur').textContent=fmt(au.duration)});
+  au.addEventListener('timeupdate',()=>{if(au.duration){$('prog').style.width=(au.currentTime/au.duration*100)+'%';$('cur').textContent=fmt(au.currentTime)}});
+  $('bar').addEventListener('click',e=>{if(au.duration){const r=e.currentTarget.getBoundingClientRect();au.currentTime=(e.clientX-r.left)/r.width*au.duration}});
+  $('bPlay').onclick=()=>au.paused?play():au.pause();
+  $('bNext').onclick=()=>go(1);
+  $('bPrev').onclick=()=>{if(au.currentTime>5){au.currentTime=0}else go(-1)};
+  $('bShuf').onclick=()=>{shuffle=!shuffle;store.set('shuffle',shuffle);$('bShuf').classList.toggle('on',shuffle);$('bShuf').setAttribute('aria-pressed',shuffle);mkOrder(order[pos]);show()};
+  $('tCalm').onclick=()=>setList('calm'); $('tUp').onclick=()=>setList('up');
+  const vol=$('vol'); vol.value=store.get('vol',35);
+  const setVol=()=>{au.volume=vol.value/100;$('volv').textContent=vol.value+'%';store.set('vol',+vol.value)}; vol.oninput=setVol; setVol();
+  $('bList').onclick=()=>{
+    const ul=$('dlist');ul.innerHTML='';$('dtitle').textContent=(list==='calm'?'🌙 Calm Focus':'☀️ Upbeat Study')+' · '+LISTS[list].length+' songs';
+    LISTS[list].forEach((t,i)=>{const li=document.createElement('li');li.innerHTML='<span></span><small>'+(t.len||'')+'</small>';li.firstChild.textContent=t.title;
+      if(i===order[pos])li.className='cur';li.onclick=()=>{mkOrder(i);load();play();$('dlg').close()};ul.appendChild(li)});
+    $('dlg').showModal();
+  };
+  $('dclose').onclick=()=>$('dlg').close();
+  document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();$('bPlay').click()}else if(e.key==='ArrowRight')go(1)});
+  $('bShuf').classList.toggle('on',shuffle);$('bShuf').setAttribute('aria-pressed',shuffle);
+  document.body.classList.toggle('up',list==='up');$('tCalm').setAttribute('aria-pressed',list==='calm');$('tUp').setAttribute('aria-pressed',list==='up');
+  mkOrder(); show(); $('dur').textContent=cur().len||'0:00';
+})();
+</script>
+</body>
+</html>
